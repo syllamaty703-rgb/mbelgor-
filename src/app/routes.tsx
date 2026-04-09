@@ -22,8 +22,11 @@ export const router = createBrowserRouter([
       { path: "gallery", Component: Gallery },
       { path: "contact", Component: Contact },
       { path: "login", Component: Login },
-      { path: "admin", Component: AdminPage },
       { path: "*", Component: NotFound },
     ],
+  },
+  {
+    path: "/admin",
+    Component: AdminPage,
   },
 ]);
