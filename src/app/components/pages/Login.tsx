@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
+import { addUserToStore } from "../../utils/mockDb";
 import { SEO } from "../SEO";
 
 export function Login() {
@@ -25,6 +26,9 @@ export function Login() {
           description: "Connexion réussie à votre compte MBELGOR."
         });
       } else {
+        // Persist to mock DB
+        addUserToStore({ name, email });
+        
         toast.success("Bienvenue chez MBELGOR !", {
           description: "Votre compte a été créé avec succès."
         });
