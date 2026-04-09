@@ -5,6 +5,7 @@ import { WhatsAppButton } from "./WhatsAppButton";
 import { CartProvider } from "../context/CartContext";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
+import { Toaster } from "sonner";
 
 export function Root() {
   return (
@@ -18,6 +19,7 @@ export function Root() {
         </main>
         <Footer />
         <WhatsAppButton />
+        <Toaster position="top-center" expand={true} richColors />
       </div>
     </CartProvider>
   );

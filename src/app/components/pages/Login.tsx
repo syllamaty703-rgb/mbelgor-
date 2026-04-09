@@ -1,17 +1,36 @@
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { useState } from "react";
-import { ArrowLeft, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User } from "lucide-react";
+import { toast } from "sonner";
+import { AnimatePresence } from "motion/react";
 import { SEO } from "../SEO";
 
 export function Login() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login
-    console.log("Login attempt", { email, password });
+    setIsLoading(true);
+
+    // Simulate network delay
+    setTimeout(() => {
+      setIsLoading(false);
+      if (isLogin) {
+        toast.success("Bon retour parmi nous !", {
+          description: "Connexion réussie à votre compte MBELGOR."
+        });
+      } else {
+        toast.success("Bienvenue chez MBELGOR !", {
+          description: "Votre compte a été créé avec succès."
+        });
+        setIsLogin(true); // Switch to login after signup
+      }
+    }, 1500);
   };
 
   return (
@@ -72,14 +91,38 @@ export function Login() {
               className="text-4xl text-[#3F1010] mb-4"
               style={{ fontFamily: 'Cinzel, serif' }}
             >
-              Connexion
+              {isLogin ? "Connexion" : "Inscription"}
             </h1>
             <p className="text-[#111111]/40 text-sm font-medium" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Ravi de vous revoir chez MBELGOR.
+              {isLogin ? "Ravi de vous revoir chez MBELGOR." : "Rejoignez l'univers de l'excellence artisanale."}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <AnimatePresence mode="wait">
+              {!isLogin && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-2 overflow-hidden"
+                >
+                  <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#111111]/40 ml-1">Nom Complet</label>
+                  <div className="relative group">
+                    <User className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-[#3F1010]/30 transition-colors group-focus-within:text-[#3F1010]" />
+                    <input 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-transparent border-b border-[#3F1010]/10 py-3 md:py-4 pl-10 pr-4 outline-none focus:border-[#3F1010] transition-colors text-[#3F1010] placeholder:text-[#3F1010]/20"
+                      placeholder="Votre nom"
+                      required={!isLogin}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="space-y-2">
               <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#111111]/40 ml-1">Email</label>
               <div className="relative group">
@@ -110,27 +153,35 @@ export function Login() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-[#3F1010] rounded border-[#3F1010]/20" />
-                <span className="text-[10px] text-[#111111]/60 uppercase tracking-wider font-medium">Se souvenir</span>
-              </label>
-              <button type="button" className="text-[10px] text-[#3F1010] font-bold uppercase tracking-wider hover:opacity-70">
-                Oublié ?
-              </button>
-            </div>
+            {isLogin && (
+              <div className="flex items-center justify-between gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-[#3F1010] rounded border-[#3F1010]/20" />
+                  <span className="text-[10px] text-[#111111]/60 uppercase tracking-wider font-medium">Se souvenir</span>
+                </label>
+                <button type="button" className="text-[10px] text-[#3F1010] font-bold uppercase tracking-wider hover:opacity-70">
+                  Oublié ?
+                </button>
+              </div>
+            )}
 
             <button 
               type="submit"
-              className="w-full bg-[#3F1010] text-white py-5 rounded-2xl text-[10px] md:text-xs uppercase tracking-[0.3em] font-bold hover:bg-[#2A0B0B] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#3F1010]/20"
+              disabled={isLoading}
+              className="w-full bg-[#3F1010] text-white py-5 rounded-2xl text-[10px] md:text-xs uppercase tracking-[0.3em] font-bold hover:bg-[#2A0B0B] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-[#3F1010]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Se Connecter
+              {isLoading ? "Chargement..." : isLogin ? "Se Connecter" : "Créer mon compte"}
             </button>
           </form>
 
           <p className="mt-12 text-center text-[10px] md:text-[11px] text-[#111111]/40" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-            Pas encore de compte ? {" "}
-            <button className="text-[#3F1010] font-bold uppercase tracking-widest hover:underline ml-2">S'inscrire</button>
+            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"} {" "}
+            <button 
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-[#3F1010] font-bold uppercase tracking-widest hover:underline ml-2"
+            >
+              {isLogin ? "S'inscrire" : "Se connecter"}
+            </button>
           </p>
         </motion.div>
       </div>
