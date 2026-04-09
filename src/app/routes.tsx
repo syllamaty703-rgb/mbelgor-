@@ -7,6 +7,7 @@ import { About } from "./components/pages/About";
 import { Gallery } from "./components/pages/Gallery";
 import { Contact } from "./components/pages/Contact";
 import { Login } from "./components/pages/Login";
+import { NotFound } from "./components/pages/NotFound";
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: "gallery", Component: Gallery },
       { path: "contact", Component: Contact },
       { path: "login", Component: Login },
+      { path: "*", Component: NotFound },
     ],
   },
 ]);
