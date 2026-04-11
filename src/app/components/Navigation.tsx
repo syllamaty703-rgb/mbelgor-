@@ -69,18 +69,18 @@ export function Navigation() {
             <div className="hidden md:flex items-center gap-10 shrink-0 ml-auto">
               <Link
                 to="/login"
-                className={`text-[9px] tracking-[0.2em] uppercase border px-6 py-2 rounded-full transition-all duration-500 font-medium ${
+                className={`text-[9px] tracking-[0.2em] uppercase border h-9 px-6 flex items-center justify-center rounded-full transition-all duration-500 font-medium ${
                   !isScrolled 
                     ? 'border-white/40 text-white hover:bg-white hover:text-[#111111]' 
                     : 'border-[#3F1010]/30 text-[#3F1010] hover:bg-[#3F1010] hover:text-white'
                 }`}
-                style={{ fontFamily: 'Montserrat, sans-serif' }}
+                style={{ fontFamily: 'Montserrat, sans-serif', paddingRight: 'calc(1.5rem - 0.2em)' }}
               >
                 Connexion
               </Link>
               <button 
                 onClick={() => setIsCartOpen(true)}
-                className={`p-2 rounded-full transition-all duration-500 hover:scale-110 border relative ${
+                className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-500 hover:scale-110 border relative ${
                   !isScrolled 
                     ? 'bg-white/10 text-white border-white/20' 
                     : 'bg-[#3F1010]/5 text-[#3F1010] border-[#3F1010]/10'
@@ -102,7 +102,7 @@ export function Navigation() {
             <div className="md:hidden flex items-center gap-4 ml-auto">
               <button 
                 onClick={() => setIsCartOpen(true)}
-                className={`p-2 rounded-full relative ${isScrolled ? 'text-[#3F1010]' : 'text-white'}`}
+                className={`w-10 h-10 flex items-center justify-center rounded-full relative ${isScrolled ? 'text-[#3F1010]' : 'text-white'}`}
                 aria-label="Panier"
               >
                 <ShoppingBag className="w-5 h-5" />
@@ -116,7 +116,7 @@ export function Navigation() {
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`transition-transform duration-300 hover:scale-110 ${isScrolled ? 'text-[#3F1010]' : 'text-white'}`}
+                className={`w-10 h-10 flex items-center justify-center transition-transform duration-300 hover:scale-110 ${isScrolled ? 'text-[#3F1010]' : 'text-white'}`}
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

@@ -90,7 +90,7 @@ export function Login() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="text-center lg:text-left mb-12 md:mb-16">
+          <div className="text-center mb-12 md:mb-16">
             <h1 
               className="text-4xl text-[#3F1010] mb-4"
               style={{ fontFamily: 'Cinzel, serif' }}
