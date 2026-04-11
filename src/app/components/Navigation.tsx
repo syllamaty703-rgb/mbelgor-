@@ -28,13 +28,13 @@ export function Navigation() {
   return (
     <>
       <nav
-        className={`fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 w-[92%] rounded-full border border-white/20 shadow-2xl ${
+        className={`fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 w-[92%] md:w-fit rounded-full border border-white/20 shadow-2xl ${
           isScrolled 
             ? "bg-[#F5F1EC]/80 backdrop-blur-xl py-3" 
             : "bg-[#111111]/30 backdrop-blur-md py-4"
         }`}
       >
-        <div className="px-6 md:px-10 flex items-center justify-between w-full">
+        <div className="px-6 md:px-12 flex items-center gap-12 lg:gap-20">
             {/* Logo */}
             <Link to="/" className="flex shrink-0">
               <img
@@ -66,7 +66,7 @@ export function Navigation() {
             </div>
 
             {/* Right Actions (Desktop) */}
-            <div className="hidden md:flex items-center gap-10 shrink-0 ml-auto">
+            <div className="hidden md:flex items-center gap-10 shrink-0">
               <Link
                 to="/login"
                 className={`text-[9px] tracking-[0.2em] uppercase border h-10 px-8 flex items-center justify-center rounded-full transition-all duration-500 font-medium ${
