@@ -34,9 +34,9 @@ export function Navigation() {
             : "bg-[#111111]/30 backdrop-blur-md py-4"
         }`}
       >
-        <div className="px-10 md:px-20 flex items-center gap-10 lg:gap-20">
+        <div className="px-6 md:px-20 flex items-center w-full">
             {/* Logo */}
-            <Link to="/" className="flex shrink-0">
+            <Link to="/" className="flex shrink-0 mr-10 lg:mr-20">
               <img
                 src="/logo.png"
                 alt="MBELGOR Logo"
@@ -66,7 +66,7 @@ export function Navigation() {
             </div>
 
             {/* Right Actions (Desktop) */}
-            <div className="hidden md:flex items-center gap-10 shrink-0">
+            <div className="hidden md:flex items-center gap-10 shrink-0 ml-auto">
               <Link
                 to="/login"
                 className={`text-[9px] tracking-[0.2em] uppercase border px-6 py-2 rounded-full transition-all duration-500 font-medium ${
@@ -99,7 +99,7 @@ export function Navigation() {
             </div>
 
             {/* Mobile Actions */}
-            <div className="md:hidden flex items-center gap-4">
+            <div className="md:hidden flex items-center gap-4 ml-auto">
               <button 
                 onClick={() => setIsCartOpen(true)}
                 className={`p-2 rounded-full relative ${isScrolled ? 'text-[#3F1010]' : 'text-white'}`}
