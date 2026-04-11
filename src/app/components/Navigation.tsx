@@ -28,15 +28,15 @@ export function Navigation() {
   return (
     <>
       <nav
-        className={`fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 w-[92%] md:w-fit rounded-full border border-white/20 shadow-2xl ${
+        className={`fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 w-[92%] rounded-full border border-white/20 shadow-2xl ${
           isScrolled 
             ? "bg-[#F5F1EC]/80 backdrop-blur-xl py-3" 
             : "bg-[#111111]/30 backdrop-blur-md py-4"
         }`}
       >
-        <div className="px-6 md:px-20 flex items-center w-full">
+        <div className="px-6 md:px-10 flex items-center justify-between w-full">
             {/* Logo */}
-            <Link to="/" className="flex shrink-0 mr-10 lg:mr-20">
+            <Link to="/" className="flex shrink-0">
               <img
                 src="/logo.png"
                 alt="MBELGOR Logo"
@@ -69,18 +69,18 @@ export function Navigation() {
             <div className="hidden md:flex items-center gap-10 shrink-0 ml-auto">
               <Link
                 to="/login"
-                className={`text-[9px] tracking-[0.2em] uppercase border h-9 px-6 flex items-center justify-center rounded-full transition-all duration-500 font-medium ${
+                className={`text-[9px] tracking-[0.2em] uppercase border h-10 px-8 flex items-center justify-center rounded-full transition-all duration-500 font-medium ${
                   !isScrolled 
                     ? 'border-white/40 text-white hover:bg-white hover:text-[#111111]' 
                     : 'border-[#3F1010]/30 text-[#3F1010] hover:bg-[#3F1010] hover:text-white'
                 }`}
-                style={{ fontFamily: 'Montserrat, sans-serif', paddingRight: 'calc(1.5rem - 0.2em)' }}
+                style={{ fontFamily: 'Montserrat, sans-serif', paddingRight: 'calc(2rem - 0.2em)' }}
               >
                 Connexion
               </Link>
               <button 
                 onClick={() => setIsCartOpen(true)}
-                className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-500 hover:scale-110 border relative ${
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-500 hover:scale-110 border relative ${
                   !isScrolled 
                     ? 'bg-white/10 text-white border-white/20' 
                     : 'bg-[#3F1010]/5 text-[#3F1010] border-[#3F1010]/10'
