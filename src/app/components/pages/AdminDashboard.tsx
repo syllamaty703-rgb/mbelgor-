@@ -1,15 +1,24 @@
-import { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Users, ShoppingBag, TrendingUp, Search, 
-  Settings, LogOut, Bell, Filter, Download
+  Settings, LogOut, Bell, Filter, Download,
+  Globe, Smartphone, Monitor, MousePointer2
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
-import { getStoredUsers, getStats, UserStore } from "../../utils/mockDb";
+import { getStoredUsers, getStats, UserStore, getVisitors, Visitor, getStoredEvents, SiteEvent } from "../../utils/mockDb";
 import { SEO } from "../SEO";
+
+// Helper to format relative time
+const timeAgo = (dateStr: string) => {
+  const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return "à l'instant";
+  if (seconds < 3600) return `il y a ${Math.floor(seconds / 60)} min`;
+  return `il y a ${Math.floor(seconds / 3600)}h`;
+};
 
 const chartData = [
   { name: 'Lun', insc: 4 },
@@ -23,12 +32,47 @@ const chartData = [
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [users, setUsers] = useState<UserStore[]>([]);
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [events, setEvents] = useState<SiteEvent[]>([]);
   const [stats, setStats] = useState(getStats());
   const [searchTerm, setSearchTerm] = useState("");
+  const prevVisitorsCount = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    setUsers(getStoredUsers());
+    // Initial load
+    refreshData();
+
+    // Poll for changes to simulate "live" data
+    const interval = setInterval(refreshData, 3000);
+    return () => clearInterval(interval);
   }, []);
+
+  const refreshData = () => {
+    const newUsers = getStoredUsers();
+    const newVisitors = getVisitors();
+    const newEvents = getStoredEvents();
+    const newStats = getStats();
+
+    setUsers(newUsers);
+    setVisitors(newVisitors);
+    setEvents(newEvents);
+    setStats(newStats);
+
+    // Audio Alert for new visitors
+    if (newVisitors.length > prevVisitorsCount.current && prevVisitorsCount.current !== 0) {
+      playPing();
+    }
+    prevVisitorsCount.current = newVisitors.length;
+  };
+
+  const playPing = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+      audioRef.current.volume = 0.3;
+    }
+    audioRef.current.play().catch(() => {}); // Catch browser autoplay restrictions
+  };
 
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -83,6 +127,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             />
           </div>
           <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 bg-green-50 text-green-600 px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-[10px] uppercase font-bold tracking-wider">{stats.currentOnline} En Ligne</span>
+            </div>
             <button className="relative text-gray-500 hover:text-[#111111]">
               <Bell size={20} />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -100,39 +148,45 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
           {/* Hero Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { label: "Total Inscrits", value: stats.totalUsers, trend: "+12%", bg: "bg-white" },
-              { label: "Nouveaux / 24h", value: stats.newUsersToday, trend: "+5%", bg: "bg-white" },
-              { label: "Paniers Actifs", value: 8, trend: "+25%", bg: "bg-white" },
+              { label: "Visites Totales", value: stats.totalVisits || 1, trend: "+100%", bg: "bg-white", icon: <Globe size={18} className="text-blue-500" /> },
+              { label: "Total Inscrits", value: stats.totalUsers, trend: "+12%", bg: "bg-white", icon: <Users size={18} className="text-purple-500" /> },
+              { label: "WhatsApp Clicks", value: stats.whatsappClicks, trend: "Aujourd'hui", bg: "bg-white", icon: <MousePointer2 size={18} className="text-green-500" /> },
+              { label: "Conversion rate", value: "4.2%", trend: "+1.2%", bg: "bg-white", icon: <ShoppingBag size={18} className="text-orange-500" /> },
             ].map((stat, i) => (
               <motion.div 
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className={`${stat.bg} p-6 rounded-3xl shadow-sm border border-gray-100`}
+                className={`${stat.bg} p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-4`}
               >
-                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">{stat.label}</p>
-                <div className="flex items-end justify-between">
-                  <h3 className="text-3xl font-bold text-[#111111]">{stat.value}</h3>
+                <div className="flex items-start justify-between">
+                  <div className="p-2 bg-gray-50 rounded-xl">{stat.icon}</div>
                   <span className="text-xs font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg">{stat.trend}</span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">{stat.label}</p>
+                  <h3 className="text-3xl font-bold text-[#111111]">{stat.value}</h3>
                 </div>
               </motion.div>
             ))}
           </div>
 
-          {/* Charts Section */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          {/* Charts & Live Feed Section */}
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-8">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-[#3F1010]">Croissance Community</h4>
-                <select className="text-xs border-none bg-gray-50 rounded-lg p-2 outline-none">
-                  <option>7 derniers jours</option>
-                  <option>30 jours</option>
-                </select>
+                <h4 className="text-sm font-bold uppercase tracking-widest text-[#3F1010]">Trafic & Engagement</h4>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#D6C6B8]" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Visiteurs</span>
+                  </div>
+                </div>
               </div>
-              <div className="h-[250px] w-full">
+              <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
@@ -153,23 +207,39 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               </div>
             </div>
 
-            <div className="bg-[#111111] p-6 rounded-3xl shadow-sm border border-white/5 text-white">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-white/60 mb-8 px-2">Top Activités Récentes</h4>
-              <div className="space-y-6">
-                {[
-                  { user: "Aissatou Fall", action: "A ajouté au panier", item: "Le Malik (T42)", time: "il y a 2 min" },
-                  { user: "Oumar Sy", action: "S'est inscrit", item: "Client Premium", time: "il y a 15 min" },
-                  { user: "Inconnue", action: "Consulte", item: "Collection Femme", time: "il y a 45 min" },
-                ].map((act, i) => (
-                  <div key={i} className="flex items-start gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[10px]">{act.user[0]}</div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold">{act.user}</p>
-                      <p className="text-[10px] text-white/40">{act.action} <span className="text-[#D6C6B8]">{act.item}</span></p>
+            <div className="bg-[#111111] p-6 rounded-3xl shadow-sm border border-white/5 text-white flex flex-col">
+              <div className="flex items-center justify-between mb-8 px-2">
+                <h4 className="text-sm font-bold uppercase tracking-widest text-white/60">Live Visitors</h4>
+                <span className="text-[10px] text-[#D6C6B8] animate-pulse">En direct</span>
+              </div>
+              <div className="flex-1 space-y-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                <AnimatePresence mode="popLayout">
+                  {visitors.length > 0 ? visitors.map((vis, i) => (
+                    <motion.div 
+                      key={vis.timestamp + i}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-[#D6C6B8]/20 transition-all group"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          {vis.device === 'Mobile' ? <Smartphone size={12} className="text-white/40" /> : <Monitor size={12} className="text-white/40" />}
+                          <span className="text-[10px] text-white/80 font-bold">{vis.location}</span>
+                        </div>
+                        <span className="text-[8px] text-white/20 whitespace-nowrap">{timeAgo(vis.timestamp)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-white/40 truncate max-w-[120px]">Page: <span className="text-[#D6C6B8]">{vis.path}</span></p>
+                        {vis.isNew && <span className="text-[8px] bg-[#D6C6B8]/10 text-[#D6C6B8] px-1.5 py-0.5 rounded uppercase font-bold">Nouveau</span>}
+                      </div>
+                    </motion.div>
+                  )) : (
+                    <div className="h-full flex items-center justify-center text-white/20 text-xs italic">
+                      Aucun visiteur récent...
                     </div>
-                    <span className="text-[10px] text-white/20 whitespace-nowrap">{act.time}</span>
-                  </div>
-                ))}
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
@@ -193,7 +263,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user, i) => (
+                  {filteredUsers.length > 0 ? filteredUsers.map((user, i) => (
                     <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -212,7 +282,11 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                         <button className="text-blue-500 font-bold hover:underline">Voir détails</button>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-gray-400 text-sm italic">Aucun client trouvé</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

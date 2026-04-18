@@ -6,11 +6,13 @@ import { CartProvider } from "../context/CartContext";
 import { Cart } from "./Cart";
 import { ScrollToTop } from "./ScrollToTop";
 import { Toaster } from "sonner";
+import { VisitorTracker } from "./VisitorTracker";
 
 export function Root() {
   return (
     <CartProvider>
       <div className="min-h-screen flex flex-col overflow-x-hidden">
+        <VisitorTracker />
         <ScrollToTop />
         <Cart />
         <Navigation />
