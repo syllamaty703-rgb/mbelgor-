@@ -1,3 +1,5 @@
+import { supabase } from "./supabaseClient";
+
 export interface UserStore {
   id: string;
   name: string;
@@ -7,123 +9,128 @@ export interface UserStore {
 }
 
 export interface Visitor {
-  id: string;
+  id?: string;
+  visitor_id: string;
   timestamp: string;
   path: string;
   device: string;
   location: string;
-  isNew: boolean;
+  is_new: boolean;
 }
 
 export interface SiteEvent {
-  id: string;
+  id?: string;
   timestamp: string;
   type: 'click_whatsapp' | 'view_page' | 'login_attempt';
   details: string;
 }
 
-export const mockUsers: UserStore[] = [
-  { id: '1', name: 'Amadou Diop', email: 'amadou@email.com', date: '2026-04-01', status: 'active' },
-  { id: '2', name: 'Fatou Sow', email: 'fatou@email.com', date: '2026-04-05', status: 'active' },
-  { id: '3', name: 'Moussa Gueye', email: 'moussa@email.com', date: '2026-04-08', status: 'new' },
-];
+export interface Order {
+  id?: string;
+  created_at?: string;
+  customer_name: string;
+  customer_email: string;
+  total_amount: number;
+  items: any;
+  status: 'pending' | 'completed' | 'cancelled';
+}
 
-export const getStoredUsers = (): UserStore[] => {
-  if (typeof window === 'undefined') return mockUsers;
-  const stored = localStorage.getItem('mbelgor_users');
-  if (!stored) {
-    localStorage.setItem('mbelgor_users', JSON.stringify(mockUsers));
-    return mockUsers;
-  }
-  return JSON.parse(stored);
-};
-
-export const addUserToStore = (user: Omit<UserStore, 'id' | 'date' | 'status'>) => {
-  const users = getStoredUsers();
-  const newUser: UserStore = {
-    ...user,
-    id: Math.random().toString(36).substr(2, 9),
-    date: new Date().toISOString().split('T')[0],
-    status: 'new'
-  };
-  const updatedUsers = [...users, newUser];
-  localStorage.setItem('mbelgor_users', JSON.stringify(updatedUsers));
-  return newUser;
-};
-
-// --- Visitor Tracking ---
+const MOCK_LOCATIONS = ["Dakar, SN", "Saint-Louis, SN", "Paris, FR", "Abidjan, CI", "Casablanca, MA"];
 
 const getDeviceType = () => {
+  if (typeof window === 'undefined') return "Desktop";
   const ua = navigator.userAgent;
   if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablette";
   if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "Mobile";
   return "Desktop";
 };
 
-const MOCK_LOCATIONS = ["Dakar, SN", "Saint-Louis, SN", "Paris, FR", "Abidjan, CI", "Casablanca, MA"];
+// --- Visitor Tracking ---
 
-export const trackVisit = (path: string) => {
+export const trackVisit = async (path: string) => {
   if (typeof window === 'undefined') return;
   
-  const visitors = getVisitors();
   const visitorId = localStorage.getItem('mbelgor_visitor_id') || Math.random().toString(36).substr(2, 9);
   localStorage.setItem('mbelgor_visitor_id', visitorId);
 
-  const newVisit: Visitor = {
-    id: visitorId,
-    timestamp: new Date().toISOString(),
+  const isReturning = localStorage.getItem('mbelgor_returning_user');
+  localStorage.setItem('mbelgor_returning_user', 'true');
+
+  const { error } = await supabase.from('visitors').insert({
+    visitor_id: visitorId,
     path,
     device: getDeviceType(),
     location: MOCK_LOCATIONS[Math.floor(Math.random() * MOCK_LOCATIONS.length)],
-    isNew: !localStorage.getItem('mbelgor_returning_user')
-  };
+    is_new: !isReturning
+  });
 
-  localStorage.setItem('mbelgor_returning_user', 'true');
+  if (error) console.error("Error tracking visit:", error);
   
-  const updatedVisitors = [newVisit, ...visitors].slice(0, 50); // Keep last 50
-  localStorage.setItem('mbelgor_visitors', JSON.stringify(updatedVisitors));
-  
-  // Also track as event
+  // Also track as event for the combined feed
   trackEvent('view_page', `A consulté ${path}`);
 };
 
-export const trackEvent = (type: SiteEvent['type'], details: string) => {
-  if (typeof window === 'undefined') return;
-  const events = getStoredEvents();
-  const newEvent: SiteEvent = {
-    id: Math.random().toString(36).substr(2, 9),
-    timestamp: new Date().toISOString(),
+export const trackEvent = async (type: SiteEvent['type'], details: string) => {
+  const { error } = await supabase.from('site_events').insert({
     type,
     details
-  };
-  localStorage.setItem('mbelgor_events', JSON.stringify([newEvent, ...events].slice(0, 100)));
+  });
+  if (error) console.error("Error tracking event:", error);
 };
 
-export const getVisitors = (): Visitor[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem('mbelgor_visitors');
-  return stored ? JSON.parse(stored) : [];
+// --- Data Retrieval ---
+
+export const getVisitors = async (): Promise<Visitor[]> => {
+  const { data, error } = await supabase
+    .from('visitors')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(50);
+  
+  return error ? [] : (data as Visitor[]);
 };
 
-export const getStoredEvents = (): SiteEvent[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem('mbelgor_events');
-  return stored ? JSON.parse(stored) : [];
+export const getStoredEvents = async (): Promise<SiteEvent[]> => {
+  const { data, error } = await supabase
+    .from('site_events')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(100);
+  
+  return error ? [] : (data as SiteEvent[]);
 };
 
-export const getStats = () => {
-  const users = getStoredUsers();
-  const visitors = getVisitors();
-  const events = getStoredEvents();
+export const getStats = async () => {
   const today = new Date().toISOString().split('T')[0];
 
+  const [visitorsRes, eventsRes, ordersRes] = await Promise.all([
+    supabase.from('visitors').select('id', { count: 'exact' }),
+    supabase.from('site_events').select('id', { count: 'exact' }).eq('type', 'click_whatsapp').gte('timestamp', today),
+    supabase.from('orders').select('id', { count: 'exact' })
+  ]);
+
   return {
-    totalUsers: users.length,
-    newUsersToday: users.filter(u => u.date === today).length,
-    activeUsers: users.filter(u => u.status === 'active').length,
-    totalVisits: visitors.length,
-    uniqueVisitors: new Set(visitors.map(v => v.id)).size,
-    whatsappClicks: events.filter(e => e.type === 'click_whatsapp' && e.timestamp.startsWith(today)).length,
-    currentOnline: Math.floor(Math.random() * 5) + 1 // Simulated live users
+    totalUsers: 0, // Users linked to Supabase Auth would be fetched differently
+    totalVisits: visitorsRes.count || 0,
+    whatsappClicks: eventsRes.count || 0,
+    totalOrders: ordersRes.count || 0,
+    currentOnline: Math.floor(Math.random() * 5) + 1 // Still simulated for now
   };
+};
+
+// --- Orders ---
+
+export const createOrder = async (order: Omit<Order, 'id' | 'created_at'>) => {
+  const { data, error } = await supabase.from('orders').insert(order).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const getOrders = async (): Promise<Order[]> => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  return error ? [] : (data as Order[]);
 };

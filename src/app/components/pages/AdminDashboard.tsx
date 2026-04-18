@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Users, ShoppingBag, TrendingUp, Search, 
   Settings, LogOut, Bell, Filter, Download,
-  Globe, Smartphone, Monitor, MousePointer2
+  Globe, Smartphone, Monitor, MousePointer2,
+  Package
 } from "lucide-react";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
-import { getStoredUsers, getStats, UserStore, getVisitors, Visitor, getStoredEvents, SiteEvent } from "../../utils/mockDb";
+import { getStats, getVisitors, Visitor, getStoredEvents, SiteEvent, getOrders, Order } from "../../utils/mockDb";
 import { SEO } from "../SEO";
 
 // Helper to format relative time
@@ -31,10 +32,16 @@ const chartData = [
 ];
 
 export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [users, setUsers] = useState<UserStore[]>([]);
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [events, setEvents] = useState<SiteEvent[]>([]);
-  const [stats, setStats] = useState(getStats());
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalVisits: 0,
+    whatsappClicks: 0,
+    totalOrders: 0,
+    currentOnline: 0
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const prevVisitorsCount = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,26 +51,32 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     refreshData();
 
     // Poll for changes to simulate "live" data
-    const interval = setInterval(refreshData, 3000);
+    const interval = setInterval(refreshData, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const refreshData = () => {
-    const newUsers = getStoredUsers();
-    const newVisitors = getVisitors();
-    const newEvents = getStoredEvents();
-    const newStats = getStats();
+  const refreshData = async () => {
+    try {
+      const [newVisitors, newEvents, newStats, newOrders] = await Promise.all([
+        getVisitors(),
+        getStoredEvents(),
+        getStats(),
+        getOrders()
+      ]);
 
-    setUsers(newUsers);
-    setVisitors(newVisitors);
-    setEvents(newEvents);
-    setStats(newStats);
+      setVisitors(newVisitors);
+      setEvents(newEvents);
+      setStats(newStats);
+      setOrders(newOrders);
 
-    // Audio Alert for new visitors
-    if (newVisitors.length > prevVisitorsCount.current && prevVisitorsCount.current !== 0) {
-      playPing();
+      // Audio Alert for new visitors
+      if (newVisitors.length > prevVisitorsCount.current && prevVisitorsCount.current !== 0) {
+        playPing();
+      }
+      prevVisitorsCount.current = newVisitors.length;
+    } catch (err) {
+      console.error("Error refreshing dashboard data:", err);
     }
-    prevVisitorsCount.current = newVisitors.length;
   };
 
   const playPing = () => {
@@ -74,9 +87,9 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     audioRef.current.play().catch(() => {}); // Catch browser autoplay restrictions
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = orders.filter(o => 
+    o.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    o.customer_email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -93,8 +106,8 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <nav className="flex-1 px-4 py-4 space-y-2">
           {[
             { icon: <TrendingUp size={18} />, label: "Vue d'ensemble", active: true },
-            { icon: <Users size={18} />, label: "Utilisateurs", active: false },
             { icon: <ShoppingBag size={18} />, label: "Commandes", active: false },
+            { icon: <Users size={18} />, label: "Utilisateurs", active: false },
             { icon: <Settings size={18} />, label: "Paramètres", active: false },
           ].map((item, i) => (
             <button key={i} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${item.active ? 'bg-[#D6C6B8] text-[#111111]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
@@ -120,7 +133,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Rechercher un client..."
+              placeholder="Rechercher une commande..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#D6C6B8] transition-all"
@@ -150,10 +163,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           {/* Hero Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { label: "Visites Totales", value: stats.totalVisits || 1, trend: "+100%", bg: "bg-white", icon: <Globe size={18} className="text-blue-500" /> },
-              { label: "Total Inscrits", value: stats.totalUsers, trend: "+12%", bg: "bg-white", icon: <Users size={18} className="text-purple-500" /> },
+              { label: "Visites Totales", value: stats.totalVisits, trend: "+100%", bg: "bg-white", icon: <Globe size={18} className="text-blue-500" /> },
               { label: "WhatsApp Clicks", value: stats.whatsappClicks, trend: "Aujourd'hui", bg: "bg-white", icon: <MousePointer2 size={18} className="text-green-500" /> },
-              { label: "Conversion rate", value: "4.2%", trend: "+1.2%", bg: "bg-white", icon: <ShoppingBag size={18} className="text-orange-500" /> },
+              { label: "Commandes", value: stats.totalOrders, trend: "Total", bg: "bg-white", icon: <Package size={18} className="text-orange-500" /> },
+              { label: "Conversion rate", value: "4.2%", trend: "+1.2%", bg: "bg-white", icon: <ShoppingBag size={18} className="text-purple-500" /> },
             ].map((stat, i) => (
               <motion.div 
                 key={i}
@@ -231,7 +244,7 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] text-white/40 truncate max-w-[120px]">Page: <span className="text-[#D6C6B8]">{vis.path}</span></p>
-                        {vis.isNew && <span className="text-[8px] bg-[#D6C6B8]/10 text-[#D6C6B8] px-1.5 py-0.5 rounded uppercase font-bold">Nouveau</span>}
+                        {vis.is_new && <span className="text-[8px] bg-[#D6C6B8]/10 text-[#D6C6B8] px-1.5 py-0.5 rounded uppercase font-bold">Nouveau</span>}
                       </div>
                     </motion.div>
                   )) : (
@@ -244,10 +257,10 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          {/* User Table */}
+          {/* Orders Table */}
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-[#3F1010]">Liste des Clients</h4>
+              <h4 className="text-sm font-bold uppercase tracking-widest text-[#3F1010]">Dernières Commandes</h4>
               <div className="flex gap-2">
                 <button className="p-2 border rounded-xl hover:bg-gray-50"><Filter size={16} /></button>
                 <button className="p-2 border rounded-xl hover:bg-gray-50 text-blue-600"><Download size={16} /></button>
@@ -257,34 +270,34 @@ export function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-50 bg-gray-50/50">
-                    {["Nom", "Email", "Date", "Statut", "Actions"].map((head, i) => (
+                    {["Client", "Email", "Date", "Statut", "Montant"].map((head, i) => (
                       <th key={i} className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-gray-400">{head}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.length > 0 ? filteredUsers.map((user, i) => (
+                  {filteredOrders.length > 0 ? filteredOrders.map((order, i) => (
                     <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-[#3F1010]/5 flex items-center justify-center text-[#3F1010] text-[10px] font-bold">{user.name[0]}</div>
-                          <span className="text-sm text-[#111111] font-medium">{user.name}</span>
+                          <div className="w-8 h-8 rounded-lg bg-[#3F1010]/5 flex items-center justify-center text-[#3F1010] text-[10px] font-bold">{order.customer_name[0]}</div>
+                          <span className="text-sm text-[#111111] font-medium">{order.customer_name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs text-gray-500 font-medium">{user.email}</td>
-                      <td className="px-6 py-4 text-xs text-gray-400">{user.date}</td>
+                      <td className="px-6 py-4 text-xs text-gray-500 font-medium">{order.customer_email}</td>
+                      <td className="px-6 py-4 text-xs text-gray-400">{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[8px] uppercase tracking-widest font-bold ${user.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                          {user.status === 'active' ? 'Actif' : 'Nouveau'}
+                        <span className={`px-3 py-1 rounded-full text-[8px] uppercase tracking-widest font-bold ${order.status === 'completed' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+                          {order.status === 'completed' ? 'Terminé' : 'En attente'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs">
-                        <button className="text-blue-500 font-bold hover:underline">Voir détails</button>
+                      <td className="px-6 py-4 text-xs font-bold text-[#111111]">
+                        {order.total_amount} FCFA
                       </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-gray-400 text-sm italic">Aucun client trouvé</td>
+                      <td colSpan={5} className="px-6 py-10 text-center text-gray-400 text-sm italic">Aucune commande trouvée</td>
                     </tr>
                   )}
                 </tbody>

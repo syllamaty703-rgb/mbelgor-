@@ -110,9 +110,27 @@ export function Cart() {
                   </span>
                 </div>
                 <button 
-                  onClick={() => {
-                    const message = `Bonjour MBELGOR, je souhaite passer une commande :\n\n${cart.map(item => `• ${item.quantity}x ${item.name}${item.size ? ` (Taille: ${item.size})` : ''} - ${(parseInt(item.price.replace(/\s/g, '')) * item.quantity).toLocaleString('fr-FR')} FCFA`).join('\n')}\n\nTotal: ${totalPrice.toLocaleString('fr-FR')} FCFA`;
-                    window.open(`https://wa.me/221788929538?text=${encodeURIComponent(message)}`, '_blank');
+                  onClick={async () => {
+                    import("../utils/mockDb").then(async ({ createOrder, trackEvent }) => {
+                      try {
+                        // Record order in Supabase
+                        await createOrder({
+                          customer_name: "Client MBELGOR", // Could be enhanced with a form later
+                          customer_email: "web@site.com",
+                          total_amount: totalPrice,
+                          items: cart,
+                          status: 'pending'
+                        });
+
+                        // Track the conversion event
+                        await trackEvent('click_whatsapp', `Commande validée : ${totalPrice} FCFA`);
+                      } catch (err) {
+                        console.error("Failed to record order:", err);
+                      }
+                      
+                      const message = `Bonjour MBELGOR, je souhaite passer une commande :\n\n${cart.map(item => `• ${item.quantity}x ${item.name}${item.size ? ` (Taille: ${item.size})` : ''} - ${(parseInt(item.price.replace(/\s/g, '')) * item.quantity).toLocaleString('fr-FR')} FCFA`).join('\n')}\n\nTotal: ${totalPrice.toLocaleString('fr-FR')} FCFA`;
+                      window.open(`https://wa.me/221788929538?text=${encodeURIComponent(message)}`, '_blank');
+                    });
                   }}
                   className="w-full bg-[#3F1010] text-white py-6 rounded-2xl text-xs uppercase tracking-[0.3em] font-bold hover:bg-[#2A0B0B] transition-all transform hover:scale-[1.02] shadow-xl shadow-[#3F1010]/20"
                 >

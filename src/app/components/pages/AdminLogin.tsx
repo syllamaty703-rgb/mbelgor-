@@ -3,29 +3,39 @@ import { motion } from "motion/react";
 import { Lock, Mail, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { SEO } from "../SEO";
+import { supabase } from "../../utils/supabaseClient";
 
-export function AdminLogin({ onLogin }: { onLogin: () => void }) {
+export function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email === "admin@mbelgor.com" && password === "MBELGOR2026") {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error("Échec de l'authentification", {
+          description: error.message === "Invalid login credentials" 
+            ? "Email ou mot de passe incorrect." 
+            : error.message
+        });
+      } else if (data.session) {
         toast.success("Authentification réussie", {
           description: "Bienvenue dans l'espace administration."
         });
-        onLogin();
-      } else {
-        toast.error("Échec de l'authentification", {
-          description: "Identifiants administrateur incorrects."
-        });
       }
-    }, 1200);
+    } catch (err) {
+      toast.error("Une erreur est survenue lors de la connexion.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,14 +65,14 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-transparent border-b border-white/10 py-4 pl-10 pr-4 outline-none focus:border-[#D6C6B8] transition-colors text-white placeholder:text-white/10"
-                placeholder="admin@mbelgor.com"
+                placeholder="votre@email.com"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40 ml-1">Code d'accès</label>
+            <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40 ml-1">Mot de passe</label>
             <div className="relative group">
               <Lock className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 transition-colors group-focus-within:text-[#D6C6B8]" />
               <input 
@@ -84,6 +94,12 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
             {isLoading ? "Vérification..." : "Accéder au Dashboard"}
           </button>
         </form>
+
+        <div className="mt-8 text-center">
+          <p className="text-[10px] text-white/20 italic">
+            Note : Vous devez créer votre compte dans l'onglet Authentication de Supabase avant de vous connecter.
+          </p>
+        </div>
       </motion.div>
     </div>
   );
